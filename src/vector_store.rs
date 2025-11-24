@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use crate::{memory::MemoryEntry, storage::Storage};
+use crate::{error::StorageError, memory::MemoryEntry, storage::Storage};
 
 /// An in-memory vector store database. Used to store embeddings.
 /// This data structure primarily stores vectors as one long piece of contiguous memory, using separate hashmaps for entries, indexes as well as a separate vector for getting positions of soft-deleted payloads.
@@ -46,9 +46,16 @@ impl InMemoryDB {
 }
 
 impl Storage for InMemoryDB {
-    async fn insert(&mut self, embedding: Vec<f32>, entry: crate::memory::MemoryEntry) {
+    async fn insert(
+        &mut self,
+        embedding: Vec<f32>,
+        entry: crate::memory::MemoryEntry,
+    ) -> Result<(), crate::Error> {
         if !self.matches_dim_size(&embedding) {
-            unimplemented!("Handle mismatching dimension sizes");
+            Err(StorageError::mismatched_dimensions(
+                self.dim,
+                embedding.len(),
+            ))?
         }
 
         let mut embedding = embedding;
@@ -61,9 +68,15 @@ impl Storage for InMemoryDB {
         }
 
         self.payloads.insert(entry.id.clone(), entry);
+
+        Ok(())
     }
 
-    async fn search(&self, embedding: Vec<f32>, limit: usize) -> Vec<MemoryEntry> {
+    async fn search(
+        &self,
+        embedding: Vec<f32>,
+        limit: usize,
+    ) -> Result<Vec<MemoryEntry>, crate::Error> {
         let mut out = Vec::new();
         let idx_map = &self.id_to_idx;
         for (id, &idx) in idx_map {
@@ -79,17 +92,20 @@ impl Storage for InMemoryDB {
         out.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
         out.truncate(limit);
 
-        out.into_iter()
+        let out = out
+            .into_iter()
             .map(|(id, _)| {
                 // SAFETY: It is pretty much guaranteed that the payload will exist since the only way to access the payload list is through internal methods
                 self.payloads.get(id).cloned().unwrap()
             })
-            .collect()
+            .collect();
+
+        Ok(out)
     }
 
     async fn search_by_id(&self, id: String) -> Result<(Vec<f32>, MemoryEntry), crate::Error> {
         let Some((_, pos_offset)) = self.id_to_idx.iter().find(|x| x.0 == &id) else {
-            unimplemented!("Handle not existing ID")
+            return Err(StorageError::embedding_not_exists(&id))?;
         };
 
         let pos_offset = pos_offset.to_owned();
@@ -97,52 +113,62 @@ impl Storage for InMemoryDB {
         let arr = self.data[pos_offset..pos_offset + self.dim].to_vec();
 
         let Some(payload) = self.payloads.get(&id).cloned() else {
-            unimplemented!("Handle not existing ID")
+            return Err(StorageError::embedding_not_exists(&id))?;
         };
 
         Ok((arr, payload))
     }
 
-    async fn get_oldest(&self, limit: usize) -> Vec<MemoryEntry> {
+    async fn get_oldest(&self, limit: usize) -> Result<Vec<MemoryEntry>, crate::Error> {
         let mut entries: Vec<_> = self.payloads.iter().map(|x| x.1.to_owned()).collect();
 
         entries.sort_by_key(|e| e.created_at);
         entries.truncate(limit);
 
-        entries
+        Ok(entries)
     }
 
-    async fn get_recent(&self, limit: usize) -> Vec<MemoryEntry> {
+    async fn get_recent(&self, limit: usize) -> Result<Vec<MemoryEntry>, crate::Error> {
         let mut entries: Vec<_> = self.payloads.iter().map(|x| x.1.to_owned()).collect();
 
         entries.sort_by_key(|e| std::cmp::Reverse(e.created_at));
         entries.truncate(limit);
 
-        entries
+        Ok(entries)
     }
 
-    async fn delete(&mut self, id: String) {
+    async fn delete(&mut self, id: String) -> Result<(), crate::Error> {
         let Some(arr_pos) = self.id_to_idx.remove(&id) else {
-            unimplemented!("Handle key not existing")
+            return Err(StorageError::embedding_not_exists(&id))?;
         };
 
         self.payloads.remove(&id);
 
         self.free_list.push(arr_pos);
+
+        Ok(())
     }
 
-    async fn delete_batch(&mut self, ids: Vec<String>) {
+    async fn delete_batch(&mut self, ids: Vec<String>) -> Result<(), crate::Error> {
         for id in ids {
-            self.delete(id).await;
+            self.delete(id).await?;
         }
+
+        Ok(())
     }
 
-    async fn count(&self) -> usize {
-        self.id_to_idx.len()
+    async fn count(&self) -> Result<usize, crate::Error> {
+        Ok(self.id_to_idx.len())
     }
 
-    async fn update_payload_by_id(&mut self, id: String, payload: MemoryEntry) {
+    async fn update_payload_by_id(
+        &mut self,
+        id: String,
+        payload: MemoryEntry,
+    ) -> Result<(), crate::Error> {
         self.payloads.entry(id).insert_entry(payload);
+
+        Ok(())
     }
 }
 

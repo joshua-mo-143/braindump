@@ -30,51 +30,73 @@ where
     }
 
     /// Store a single memory.
-    pub async fn store<AsRefStr>(&mut self, memory: AsRefStr, entry: MemoryEntry)
+    pub async fn store<AsRefStr>(
+        &mut self,
+        memory: AsRefStr,
+        entry: MemoryEntry,
+    ) -> Result<(), crate::Error>
     where
         AsRefStr: AsRef<str>,
     {
-        let embedding = self.embedder.embed_text(memory.as_ref()).await;
-        self.storage.insert(embedding.clone(), entry.clone()).await;
+        let embedding = self.embedder.embed_text(memory.as_ref()).await?;
+        self.storage
+            .insert(embedding.clone(), entry.clone())
+            .await?;
 
         if let Some(cache) = &mut self.hot_cache
             && entry.should_cache(&self.cfg)
         {
-            cache.insert(embedding, entry).await;
+            cache.insert(embedding, entry).await?;
         }
+
+        Ok(())
     }
 
     /// Retrieve memories, given a query and a limit for number of returned memories.
-    pub async fn retrieve<AsRefStr>(&mut self, query: AsRefStr, limit: usize) -> Vec<MemoryEntry>
+    pub async fn retrieve<AsRefStr>(
+        &mut self,
+        query: AsRefStr,
+        limit: usize,
+    ) -> Result<Vec<MemoryEntry>, crate::Error>
     where
         AsRefStr: AsRef<str>,
     {
-        let embedding = self.embedder.embed_text(query.as_ref()).await;
+        let embedding = self.embedder.embed_text(query.as_ref()).await?;
 
         let mut results = if let Some(cache) = &mut self.hot_cache {
-            cache.search(embedding.clone(), limit).await
+            cache.search(embedding.clone(), limit).await?
         } else {
             Vec::new()
         };
 
         if results.len() < limit {
-            let deep_results = self.storage.search(embedding, limit - results.len()).await;
+            let deep_results = self
+                .storage
+                .search(embedding, limit - results.len())
+                .await?;
             results.extend(deep_results);
         }
 
-        results
+        Ok(results)
     }
 
     /// Updates a memory and checks if it needs to be hot cached.
-    pub async fn update_memory_access(&mut self, mut memory: MemoryEntry) {
+    pub async fn update_memory_access(
+        &mut self,
+        mut memory: MemoryEntry,
+    ) -> Result<(), crate::Error> {
         memory.last_accessed = Utc::now().timestamp();
         memory.access_count += 1;
 
         if memory.should_cache(&self.cfg)
             && let Some(cache) = &mut self.hot_cache
         {
-            cache.update_payload_by_id(memory.id.clone(), memory).await;
+            cache
+                .update_payload_by_id(memory.id.clone(), memory)
+                .await?;
         }
+
+        Ok(())
     }
 }
 
