@@ -10,6 +10,14 @@ use std::sync::Mutex;
 /// Under the hood, `std::sync::Arc` and `std::sync::Mutex` are used due to `fastembed::TextEmbedding` requiring `&mut self` to embed.
 pub struct FastembedTextEmbedder(Arc<Mutex<TextEmbedding>>);
 
+impl Default for FastembedTextEmbedder {
+    fn default() -> Self {
+        let model = TextEmbedding::try_new(Default::default()).unwrap();
+
+        Self(Arc::new(Mutex::new(model)))
+    }
+}
+
 impl FastembedTextEmbedder {
     /// Creates a new instance of `FastembedTextEmbedder`.
     pub fn new(embedder: TextEmbedding) -> Self {
@@ -24,9 +32,9 @@ impl From<TextEmbedding> for FastembedTextEmbedder {
 }
 
 impl crate::embed::Embedder for FastembedTextEmbedder {
-    async fn embed_text(&self, text: &str) -> Vec<f32> {
+    async fn embed_text(&self, text: &str) -> Result<Vec<f32>, crate::Error> {
         let embedding = self.0.lock().unwrap().embed(vec![text], None).unwrap();
 
-        embedding.first().cloned().unwrap()
+        Ok(embedding.first().cloned().unwrap())
     }
 }

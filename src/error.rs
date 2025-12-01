@@ -9,6 +9,8 @@ pub enum Error {
     NoOp,
 }
 
+impl std::error::Error for Error {}
+
 impl Error {
     pub fn custom(input: &str) -> Self {
         Self::Custom(input.to_string())

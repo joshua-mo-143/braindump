@@ -22,3 +22,11 @@ serde_json = "1.0.145"
 default = []
 fastembed = ["dep:fastembed"]
 wasm = []
+
+[[example]]
+name = "basic"
+path = "examples/basic.rs"
+required-features = ["fastembed"]
+
+[dev-dependencies]
+tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread"] }

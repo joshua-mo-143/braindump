@@ -60,13 +60,17 @@ impl Storage for InMemoryDB {
 
         let mut embedding = embedding;
 
-        if let Some(offset) = self.free_list.pop() {
+        let idx = if let Some(offset) = self.free_list.pop() {
             // SAFETY: We already checked the dimensions of the embedding and the size of already-existing embeddings
             self.data[offset..offset + self.dim].copy_from_slice(&embedding);
+            offset
         } else {
+            let vec_len = self.data.len();
             self.data.append(&mut embedding);
-        }
+            vec_len
+        };
 
+        self.id_to_idx.insert(entry.id.clone(), idx);
         self.payloads.insert(entry.id.clone(), entry);
 
         Ok(())

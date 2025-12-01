@@ -19,16 +19,18 @@ where
     hot_cache: Option<InMemoryDB>,
 }
 
+impl MemoryManager<EmbedderNotSet, StorageNotSet> {
+    /// Creates a new instance of `MemoryManagerBuilder`.
+    pub fn builder() -> MemoryManagerBuilder<EmbedderNotSet, StorageNotSet> {
+        MemoryManagerBuilder::new()
+    }
+}
+
 impl<E, S> MemoryManager<E, S>
 where
     E: Embedder,
     S: Storage,
 {
-    /// Creates a new instance of `MemoryManagerBuilder`.
-    pub fn builder() -> MemoryManagerBuilder<EmbedderNotSet, StorageNotSet> {
-        MemoryManagerBuilder::new()
-    }
-
     /// Store a single memory.
     pub async fn store<AsRefStr>(
         &mut self,
