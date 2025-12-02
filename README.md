@@ -23,8 +23,8 @@ To enable WASM, you need to enable the `wasm` feature then compile to any kind o
 WASM is incompatible with the `fastembed` feature due to it using some not-WASM friendly components.
 
 ## TODO before release
-- [ ] Check all `FIXME` and `TODO`, as well as `unimplemented`
-- [ ] Check that everything compiles for all intended targets
+- [x] Check all `FIXME` and `TODO`, as well as `unimplemented`
+- [x] Check that everything compiles for all intended targets
 
 ## Roadmap
 - [x] In-memory vector store implementation for testing as well as quickly spinning up a hot cache

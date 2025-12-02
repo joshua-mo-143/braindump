@@ -171,11 +171,7 @@ where
             return Err(BuildError::EmbedderNotFound)?;
         };
 
-        let cfg = if let Some(cfg) = self.cfg {
-            cfg
-        } else {
-            MemoryConfig::new()
-        };
+        let cfg = self.cfg.unwrap_or_default();
 
         let mgr = MemoryManager {
             storage,
