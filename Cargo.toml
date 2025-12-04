@@ -6,7 +6,7 @@ description = "An ergonomic, opinionated memory interface for AI agents."
 license = "MIT"
 repository = "https://github.com/joshua-mo-143/braindump"
 keywords = ["ai", "memory", "llm", "persistence", "agent"]
-categories = ["ai", "database"]
+categories = ["database", "wasm"]
 
 [package.metadata.docs.rs]
 all-features = true
