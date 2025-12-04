@@ -58,4 +58,6 @@ pub struct MemoryDraft {
     pub content: String,
     /// Any additional metadata (using `serde_json::Map`)
     pub metadata: Map<String, Value>,
+    /// How important the memory is.
+    pub importance: f32,
 }
