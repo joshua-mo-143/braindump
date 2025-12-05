@@ -1,5 +1,6 @@
 pub mod embed;
 pub mod error;
+pub mod id_gen;
 pub mod memory;
 pub mod storage;
 pub mod vector_store;

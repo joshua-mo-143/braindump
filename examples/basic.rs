@@ -1,9 +1,6 @@
 use braindump::{
     fastembed::FastembedTextEmbedder,
-    memory::{
-        MemoryEntry, MemoryKind,
-        manager::{MemoryConfig, MemoryManager},
-    },
+    memory::{MemoryEntry, MemoryKind, manager::MemoryManager},
     vector_store::InMemoryDB,
 };
 use serde_json::Map;
