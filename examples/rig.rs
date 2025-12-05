@@ -1,9 +1,11 @@
 use braindump::{
     embed::RigEmbedder,
-    memory::{generation::MemoryGenerator, manager::MemoryManager},
+    memory::{MemoryDraft, generation::MemoryGenerator, manager::MemoryManager},
     vector_store::InMemoryDB,
 };
 use rig::client::{EmbeddingsClient, ProviderClient};
+use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
+use tracing_subscriber::{EnvFilter, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -25,10 +27,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "User: Please help me write a simple web server using Axum.",
     ];
 
-    // FIXME: This should be made much easier to use before release!
+    // FIXME: This should be made much easier to use before next release!
     let ext = braindump::memory::generation::create_rig_memory_extractor::<
         rig::client::Client<rig::providers::openai::OpenAIResponsesExt>,
-        T,
+        MemoryDraft,
     >(&openai_client, "gpt-5");
     let mut memory_gen = MemoryGenerator::new(ext);
 
@@ -36,7 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Memories generated: {memories:?}");
 
     for memory in memories {
-        memory_mgr.store(memory.content, memory).await?;
+        memory_mgr.store(memory.content.clone(), memory).await?;
     }
 
     let res = memory_mgr.retrieve("Rust web server", 1).await?;
