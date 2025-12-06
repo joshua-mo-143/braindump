@@ -1,6 +1,6 @@
 use braindump::{
     embed::RigEmbedder,
-    memory::{MemoryDraft, generation::MemoryGenerator, manager::MemoryManager},
+    memory::{generation::MemoryGenerator, manager::MemoryManager},
     vector_store::InMemoryDB,
 };
 use rig::client::{EmbeddingsClient, ProviderClient};

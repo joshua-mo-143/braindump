@@ -3,7 +3,6 @@ use braindump::{
     memory::{MemoryEntry, MemoryKind, manager::MemoryManager},
     vector_store::InMemoryDB,
 };
-use serde_json::Map;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

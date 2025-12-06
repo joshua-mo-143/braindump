@@ -26,7 +26,7 @@ default = []
 fastembed = ["dep:fastembed"]
 wasm = []
 uuid = ["dep:uuid"]
-rig = ["dep:rig-core", "rig-core/reqwest-tls"]
+rig = ["dep:rig-core"]
 rig-wasm = ["dep:rig-core", "rig-core/worker"]
 
 [[example]]
@@ -41,3 +41,4 @@ required-features = ["rig"]
 
 [dev-dependencies]
 tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread"] }
+rig-core = { version = "0.26.0" }

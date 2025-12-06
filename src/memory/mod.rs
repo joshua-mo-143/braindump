@@ -6,7 +6,7 @@ use crate::memory::manager::MemoryConfig;
 pub mod generation;
 pub mod manager;
 
-/// A memory entry.
+/// A memory entry (ie, a summarized version of a conversation).
 ///
 /// It is generally advised that the contents of an agent memory be generated from an LLM as the contents are often very non-deterministic.
 #[derive(Clone, Debug)]
@@ -58,7 +58,7 @@ pub enum MemoryKind {
 pub struct MemoryDraft {
     /// The content of the memory (eg, a fact or a summarization of a previous conversation).
     pub content: String,
-    // /// The kind of memory that this memory represents (eg working memory, episodic memory or semantic memory)
+    /// The kind of memory that this memory represents (eg working memory, episodic memory or semantic memory)
     pub kind: MemoryKind,
     // /// Any additional metadata (using `serde_json::Map`)
     // pub metadata: Map<String, Value>,
