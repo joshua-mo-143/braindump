@@ -57,6 +57,7 @@ where
             .into_iter()
             .map(|draft| MemoryEntry {
                 id: self.id_generator.generate_id(),
+                kind: draft.kind,
                 content: draft.content,
                 importance: draft.importance,
                 created_at,
@@ -72,6 +73,7 @@ where
 #[cfg_attr(docsrs, doc(cfg(feature = "rig")))]
 mod rig {
     use crate::memory::{MemoryDraft, generation::MemoryGeneration};
+    use rig::client::{Capabilities, Client, CompletionClient, Provider};
     use rig::completion::CompletionModel;
     use rig::extractor::Extractor;
 
@@ -85,13 +87,19 @@ mod rig {
         }
     }
 
-    /// Create memory extractor with
-    pub fn create_rig_memory_extractor<Client, T>(
-        client: &Client,
+    pub fn create_rig_memory_extractor<Ext, HttpClient, Model>(
+        client: &Client<Ext, HttpClient>,
         model_name: &str,
-    ) -> Extractor<Client::CompletionModel, MemoryDraft>
+    ) -> Extractor<
+        <rig::client::Client<Ext, HttpClient> as rig::client::CompletionClient>::CompletionModel,
+        MemoryDraft,
+    >
     where
-        Client: rig::client::CompletionClient,
+        Ext:
+            Provider + Capabilities<HttpClient, Completion = rig::client::Capable<Model>> + 'static,
+        HttpClient: rig::http_client::HttpClientExt + 'static,
+        Model: rig::completion::CompletionModel,
+        Client<Ext, HttpClient>: CompletionClient,
     {
         client
             .extractor::<MemoryDraft>(model_name)

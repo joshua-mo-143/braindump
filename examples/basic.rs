@@ -22,12 +22,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let memory_entry = MemoryEntry {
         id: "001".to_string(),
         content: memory_contents.clone(),
-        // kind: MemoryKind::Episodic,
+        kind: MemoryKind::Episodic,
         importance: 0.8,
         created_at: 1764632395,
         last_accessed: 1764632395,
         access_count: 0,
         // metadata: Map::new(),
+        source_context: "Generated for the purposes of testing".to_string(),
     };
 
     memory.store(memory_contents, memory_entry).await?;

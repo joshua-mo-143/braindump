@@ -4,8 +4,6 @@ use braindump::{
     vector_store::InMemoryDB,
 };
 use rig::client::{EmbeddingsClient, ProviderClient};
-use tracing_subscriber::prelude::__tracing_subscriber_SubscriberExt;
-use tracing_subscriber::{EnvFilter, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -28,10 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     // FIXME: This should be made much easier to use before next release!
-    let ext = braindump::memory::generation::create_rig_memory_extractor::<
-        rig::client::Client<rig::providers::openai::OpenAIResponsesExt>,
-        MemoryDraft,
-    >(&openai_client, "gpt-5");
+    let ext = braindump::memory::generation::create_rig_memory_extractor(&openai_client, "gpt-5");
     let mut memory_gen = MemoryGenerator::new(ext);
 
     let memories = memory_gen.generate_memory(chat_history).await;
