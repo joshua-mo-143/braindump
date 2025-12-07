@@ -3,11 +3,13 @@ use chrono::Utc;
 use crate::{
     embed::{Embedder, EmbedderNotSet},
     error::BuildError,
-    memory::MemoryEntry,
+    memory::{MemoryEntry, MemoryKind, cache::MemoryCache},
     storage::{Storage, StorageNotSet},
     vector_store::InMemoryDB,
 };
 
+/// An agentic memory management frontend.
+/// Handles storing and retrieving memories.
 pub struct MemoryManager<E, S>
 where
     E: Embedder,
@@ -16,7 +18,7 @@ where
     storage: S,
     embedder: E,
     cfg: MemoryConfig,
-    hot_cache: Option<InMemoryDB>,
+    hot_cache: Option<MemoryCache>,
 }
 
 impl MemoryManager<EmbedderNotSet, StorageNotSet> {
@@ -46,9 +48,12 @@ where
             .await?;
 
         if let Some(cache) = &mut self.hot_cache
-            && entry.should_cache(&self.cfg)
+            && self.cfg.should_cache(&entry)
         {
-            cache.insert(embedding, entry).await?;
+            if cache.store.count().await.unwrap() > cache.max_memory_limit as usize {
+                cache.evict_from_cache(1).await;
+            }
+            cache.store.insert(embedding, entry).await?;
         }
 
         Ok(())
@@ -66,16 +71,25 @@ where
         let embedding = self.embedder.embed_text(query.as_ref()).await?;
 
         let mut results = if let Some(cache) = &mut self.hot_cache {
-            cache.search(embedding.clone(), limit).await?
+            let results = cache.store.search(embedding.clone(), limit).await?;
+            if !results.is_empty() {
+                cache.stats_mut().add_hit();
+            } else {
+                cache.stats_mut().add_miss();
+            };
+
+            results
         } else {
             Vec::new()
         };
 
         if results.len() < limit {
+            // TODO: We should probably add caching here
             let deep_results = self
                 .storage
                 .search(embedding, limit - results.len())
                 .await?;
+
             results.extend(deep_results);
         }
 
@@ -90,10 +104,11 @@ where
         memory.last_accessed = Utc::now().timestamp();
         memory.access_count += 1;
 
-        if memory.should_cache(&self.cfg)
+        if self.cfg.should_cache(&memory)
             && let Some(cache) = &mut self.hot_cache
         {
             cache
+                .store
                 .update_payload_by_id(memory.id.clone(), memory)
                 .await?;
         }
@@ -108,7 +123,7 @@ pub struct MemoryManagerBuilder<E, S> {
     storage: Option<S>,
     embedder: Option<E>,
     cfg: Option<MemoryConfig>,
-    hot_cache: Option<InMemoryDB>,
+    hot_cache: Option<MemoryCache>,
 }
 
 impl MemoryManagerBuilder<EmbedderNotSet, StorageNotSet> {
@@ -158,7 +173,7 @@ where
     }
 
     pub fn hot_cache(mut self, cache: InMemoryDB) -> Self {
-        self.hot_cache = Some(cache);
+        self.hot_cache = Some(MemoryCache::new(cache));
         self
     }
 
@@ -194,8 +209,7 @@ pub struct MemoryConfig {
     pub min_retention_score: Option<f32>,
     /// How many to evict during eviction
     pub eviction_batch_size: usize,
-    /// How many seconds a memory should stay in the cache window (default is 1 hour)
-    pub cache_window: i64,
+    pub custom_caching_strategy: Option<Box<dyn Fn(&Self, &MemoryEntry) -> bool>>,
 }
 
 impl Default for MemoryConfig {
@@ -211,7 +225,27 @@ impl MemoryConfig {
             max_age_days: None,
             min_retention_score: None,
             eviction_batch_size: 1,
-            cache_window: 3600,
+            custom_caching_strategy: None,
+        }
+    }
+
+    pub fn should_cache(&self, entry: &MemoryEntry) -> bool {
+        if let Some(strategy) = self.custom_caching_strategy.as_ref() {
+            return strategy(self, entry);
+        };
+
+        match entry.kind {
+            MemoryKind::Working => false,
+            MemoryKind::Semantic => true,
+            MemoryKind::Episodic => entry.importance > 0.5 || entry.access_count > 0,
+        }
+    }
+
+    pub fn should_retain_in_cache(&self, entry: &MemoryEntry) -> bool {
+        match entry.kind {
+            MemoryKind::Semantic => true,
+            MemoryKind::Episodic => entry.importance > 0.6 && entry.access_count >= 2,
+            MemoryKind::Working => false,
         }
     }
 }

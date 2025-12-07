@@ -2,6 +2,8 @@
 
 use std::collections::HashMap;
 
+use rand::seq::IteratorRandom;
+
 use crate::{error::StorageError, memory::MemoryEntry, storage::Storage};
 
 /// An in-memory vector store database. Used to store embeddings.
@@ -42,6 +44,12 @@ impl InMemoryDB {
         let array = embedding.as_ref();
 
         array.len() == self.dim
+    }
+
+    /// Random sampling using the `rand` crate.
+    pub(crate) fn random_sample(&self, count: usize) -> Vec<&MemoryEntry> {
+        let mut rng = rand::rng();
+        self.payloads.values().choose_multiple(&mut rng, count)
     }
 }
 

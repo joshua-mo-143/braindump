@@ -1,6 +1,6 @@
 use braindump::{
     fastembed::FastembedTextEmbedder,
-    memory::{MemoryEntry, MemoryKind, manager::MemoryManager},
+    memory::{Confidence, MemoryEntry, MemoryKind, manager::MemoryManager},
     vector_store::InMemoryDB,
 };
 
@@ -26,7 +26,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         created_at: 1764632395,
         last_accessed: 1764632395,
         access_count: 0,
-        // metadata: Map::new(),
+        confidence: Confidence::High,
+        metadata: Vec::new(),
         source_context: "Generated for the purposes of testing".to_string(),
     };
 

@@ -61,9 +61,11 @@ where
                 content: draft.content,
                 importance: draft.importance,
                 created_at,
+                confidence: draft.confidence,
                 last_accessed: created_at,
                 access_count: 0,
-                source_context: draft.source_context, // metadata: Map::new(),
+                source_context: draft.source_context,
+                metadata: draft.metadata,
             })
             .collect()
     }
@@ -87,6 +89,7 @@ mod rig {
         }
     }
 
+    /// Creates a [`rig::extractor::Extractor`] tailored to creating memories and extracting observations/facts from conversations.
     pub fn create_rig_memory_extractor<Ext, HttpClient, Model>(
         client: &Client<Ext, HttpClient>,
         model_name: &str,

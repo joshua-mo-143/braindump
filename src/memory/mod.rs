@@ -1,8 +1,6 @@
-use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
-use crate::memory::manager::MemoryConfig;
-
+pub mod cache;
 pub mod generation;
 pub mod manager;
 
@@ -17,7 +15,7 @@ pub struct MemoryEntry {
     pub content: String,
     /// The kind of memory that this memory represents (eg working memory, episodic memory or semantic memory)
     pub kind: MemoryKind,
-    /// How important the memory is.
+    /// How important the memory is (using a decimal number between 0.0 and 1.0).
     pub importance: f32,
     /// Whenever the memory was created (as a Unix timestamp).
     pub created_at: i64,
@@ -27,19 +25,10 @@ pub struct MemoryEntry {
     pub access_count: u32,
     /// The context in which this memory has been created
     pub source_context: String,
-    // /// Any additional metadata (using `serde_json::Map`)
-    // pub metadata: Map<String, Value>,
-}
-
-impl MemoryEntry {
-    /// Whether or not a memory entry should be cached.
-    /// Currently, it uses a simple time-based loop.
-    /// This will be improved in future since this is quite basic and we could probably do better.
-    pub fn should_cache(&self, cfg: &MemoryConfig) -> bool {
-        let current_time = Utc::now().timestamp();
-        let age = current_time - self.created_at;
-        age >= cfg.cache_window
-    }
+    /// How confident the memory generator is about this piece of information
+    pub confidence: Confidence,
+    /// Any additional metadata
+    pub metadata: Vec<MetadataEntry>,
 }
 
 /// The type of memory.
@@ -58,12 +47,27 @@ pub enum MemoryKind {
 pub struct MemoryDraft {
     /// The content of the memory (eg, a fact or a summarization of a previous conversation).
     pub content: String,
-    /// The kind of memory that this memory represents (eg working memory, episodic memory or semantic memory)
     pub kind: MemoryKind,
-    // /// Any additional metadata (using `serde_json::Map`)
-    // pub metadata: Map<String, Value>,
     /// The context in which this memory has been created
     pub source_context: String,
-    /// How important the memory is.
+    /// How important the memory is (using a decimal number between 0.0 and 1.0).
     pub importance: f32,
+    pub confidence: Confidence,
+    /// Any additional metadata
+    pub metadata: Vec<MetadataEntry>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
+pub struct MetadataEntry {
+    key: String,
+    value: String,
+}
+
+/// A confidence score (provided by an LLM). Can either be low, medium or high.
+/// Represents the LLM's confidence about a fact or conversation history observation.
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
+pub enum Confidence {
+    Low,
+    Medium,
+    High,
 }

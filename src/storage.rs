@@ -34,11 +34,13 @@ pub trait Storage: WasmCompatSend + WasmCompatSync {
         &mut self,
         id: String,
     ) -> impl Future<Output = Result<(), crate::Error>> + WasmCompatSend;
+
     /// Delete multiple documents (by ID)
     fn delete_batch(
         &mut self,
         ids: Vec<String>,
     ) -> impl Future<Output = Result<(), crate::Error>> + WasmCompatSend;
+
     /// Get documents with the oldest inserts
     fn get_oldest(
         &self,
@@ -51,6 +53,7 @@ pub trait Storage: WasmCompatSend + WasmCompatSync {
         id: String,
         payload: MemoryEntry,
     ) -> impl Future<Output = Result<(), crate::Error>> + WasmCompatSend;
+
     /// Get the total count of storage
     fn count(&self) -> impl Future<Output = Result<usize, crate::Error>> + WasmCompatSend;
 }
