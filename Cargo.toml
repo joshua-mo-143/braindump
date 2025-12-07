@@ -1,6 +1,6 @@
 [package]
 name = "braindump"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2024"
 description = "An ergonomic, opinionated memory interface for AI agents."
 license = "MIT"
