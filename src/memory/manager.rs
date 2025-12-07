@@ -3,7 +3,7 @@ use chrono::Utc;
 use crate::{
     embed::{Embedder, EmbedderNotSet},
     error::BuildError,
-    memory::{MemoryEntry, MemoryKind, cache::MemoryCache},
+    memory::{MemoryEntry, cache::MemoryCache},
     storage::{Storage, StorageNotSet},
     vector_store::InMemoryDB,
 };
@@ -209,8 +209,10 @@ pub struct MemoryConfig {
     pub min_retention_score: Option<f32>,
     /// How many to evict during eviction
     pub eviction_batch_size: usize,
-    pub custom_caching_strategy: Option<Box<dyn Fn(&Self, &MemoryEntry) -> bool>>,
+    pub custom_caching_strategy: Option<Box<CachingStrategyFn>>,
 }
+
+pub type CachingStrategyFn = dyn Fn(&MemoryConfig, &MemoryEntry) -> bool;
 
 impl Default for MemoryConfig {
     fn default() -> Self {
@@ -234,18 +236,24 @@ impl MemoryConfig {
             return strategy(self, entry);
         };
 
-        match entry.kind {
-            MemoryKind::Working => false,
-            MemoryKind::Semantic => true,
-            MemoryKind::Episodic => entry.importance > 0.5 || entry.access_count > 0,
-        }
+        entry.importance > 0.5 || entry.access_count > 0
+
+        // // awaiting new Rig release
+        // match entry.kind {
+        //     MemoryKind::Working => false,
+        //     MemoryKind::Semantic => true,
+        //     MemoryKind::Episodic => entry.importance > 0.5 || entry.access_count > 0,
+        // }
     }
 
     pub fn should_retain_in_cache(&self, entry: &MemoryEntry) -> bool {
-        match entry.kind {
-            MemoryKind::Semantic => true,
-            MemoryKind::Episodic => entry.importance > 0.6 && entry.access_count >= 2,
-            MemoryKind::Working => false,
-        }
+        entry.importance > 0.6 && entry.access_count >= 2
+
+        // // awaiting new Rig release
+        // match entry.kind {
+        //     MemoryKind::Semantic => true,
+        //     MemoryKind::Episodic => entry.importance > 0.6 && entry.access_count >= 2,
+        //     MemoryKind::Working => false,
+        // }
     }
 }
