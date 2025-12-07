@@ -240,7 +240,7 @@ dependencies = [
 
 [[package]]
 name = "braindump"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "chrono",
  "fastembed",
@@ -2209,7 +2209,8 @@ checksum = "0c6a884d2998352bb4daf0183589aec883f16a6da1f4dde84d8e2e9a5409a1ce"
 [[package]]
 name = "rig-core"
 version = "0.26.0"
-source = "git+https://github.com/0xplaygrounds/rig.git?branch=main#65e07b1cfaf2169b96d68fb8cae76bbac785e444"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01be6d1a1f71ac7fb77c1d84bff8f2b54bf51a1e8111935b9c87799c4e8c1970"
 dependencies = [
  "as-any",
  "async-stream",

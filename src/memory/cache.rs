@@ -63,6 +63,7 @@ fn eviction_score(entry: &MemoryEntry) -> i64 {
     frequency * 1000 + importance * 100 - recency
 }
 
+#[derive(Default)]
 pub struct CacheStats {
     hits: u32,
     misses: u32,
@@ -70,7 +71,7 @@ pub struct CacheStats {
 
 impl CacheStats {
     pub fn new() -> Self {
-        Self { hits: 0, misses: 0 }
+        Self::default()
     }
 
     pub fn add_hit(&mut self) {

@@ -57,11 +57,11 @@ where
             .into_iter()
             .map(|draft| MemoryEntry {
                 id: self.id_generator.generate_id(),
-                kind: draft.kind,
+                // kind: draft.kind,
                 content: draft.content,
                 importance: draft.importance,
                 created_at,
-                confidence: draft.confidence,
+                // confidence: draft.confidence,
                 last_accessed: created_at,
                 access_count: 0,
                 source_context: draft.source_context,
