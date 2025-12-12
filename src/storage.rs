@@ -12,22 +12,25 @@ pub trait Storage: WasmCompatSend + WasmCompatSync {
         embedding: Vec<f32>,
         entry: MemoryEntry,
     ) -> impl Future<Output = Result<(), crate::Error>> + WasmCompatSend;
+
     /// Search (typically, using semantic search)
     fn search(
         &self,
         embedding: Vec<f32>,
         limit: usize,
-    ) -> impl Future<Output = Result<Vec<MemoryEntry>, crate::Error>> + WasmCompatSend;
-    /// Search the storage by ID and get the embedding as well as the memory entry
+    ) -> impl Future<Output = Result<Vec<SearchResult>, crate::Error>> + WasmCompatSend;
+
+    /// Search the storage for a single record by ID and get the embedding as well as the memory entry
     fn search_by_id(
         &self,
         id: String,
-    ) -> impl Future<Output = Result<(Vec<f32>, MemoryEntry), crate::Error>> + WasmCompatSend;
+    ) -> impl Future<Output = Result<SearchResult, crate::Error>> + WasmCompatSend;
+
     /// Search for all recent inserts
     fn get_recent(
         &self,
         limit: usize,
-    ) -> impl Future<Output = Result<Vec<MemoryEntry>, crate::Error>> + WasmCompatSend;
+    ) -> impl Future<Output = Result<Vec<SearchResult>, crate::Error>> + WasmCompatSend;
 
     /// Delete a document (by ID)
     fn delete(
@@ -45,7 +48,7 @@ pub trait Storage: WasmCompatSend + WasmCompatSync {
     fn get_oldest(
         &self,
         limit: usize,
-    ) -> impl Future<Output = Result<Vec<MemoryEntry>, crate::Error>> + WasmCompatSend;
+    ) -> impl Future<Output = Result<Vec<SearchResult>, crate::Error>> + WasmCompatSend;
 
     /// Update a payload by ID
     fn update_payload_by_id(
@@ -56,6 +59,34 @@ pub trait Storage: WasmCompatSend + WasmCompatSync {
 
     /// Get the total count of storage
     fn count(&self) -> impl Future<Output = Result<usize, crate::Error>> + WasmCompatSend;
+}
+
+#[derive(Clone, Debug)]
+pub struct SearchResult {
+    vec: Vec<f32>,
+    data: MemoryEntry,
+}
+
+impl SearchResult {
+    pub fn new(vec: Vec<f32>, data: MemoryEntry) -> Self {
+        Self { vec, data }
+    }
+
+    pub fn embedding(&self) -> &[f32] {
+        &self.vec
+    }
+
+    pub fn embedding_owned(&self) -> Vec<f32> {
+        self.vec.clone()
+    }
+
+    pub fn data(&self) -> &MemoryEntry {
+        &self.data
+    }
+
+    pub fn data_owned(&self) -> MemoryEntry {
+        self.data.clone()
+    }
 }
 
 /// A placeholder struct to show that the storage type has not been set.
@@ -75,11 +106,11 @@ impl Storage for StorageNotSet {
         Err(crate::Error::NoOp)
     }
 
-    async fn get_oldest(&self, _: usize) -> Result<Vec<MemoryEntry>, crate::Error> {
+    async fn get_oldest(&self, _: usize) -> Result<Vec<SearchResult>, crate::Error> {
         Err(crate::Error::NoOp)
     }
 
-    async fn get_recent(&self, _: usize) -> Result<Vec<MemoryEntry>, crate::Error> {
+    async fn get_recent(&self, _: usize) -> Result<Vec<SearchResult>, crate::Error> {
         Err(crate::Error::NoOp)
     }
 
@@ -87,11 +118,11 @@ impl Storage for StorageNotSet {
         Err(crate::Error::NoOp)
     }
 
-    async fn search(&self, _: Vec<f32>, _: usize) -> Result<Vec<MemoryEntry>, crate::Error> {
+    async fn search(&self, _: Vec<f32>, _: usize) -> Result<Vec<SearchResult>, crate::Error> {
         Err(crate::Error::NoOp)
     }
 
-    async fn search_by_id(&self, _: String) -> Result<(Vec<f32>, MemoryEntry), crate::Error> {
+    async fn search_by_id(&self, _: String) -> Result<SearchResult, crate::Error> {
         Err(crate::Error::NoOp)
     }
 

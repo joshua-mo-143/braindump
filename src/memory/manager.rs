@@ -4,7 +4,7 @@ use crate::{
     embed::{Embedder, EmbedderNotSet},
     error::BuildError,
     memory::{MemoryEntry, cache::MemoryCache},
-    storage::{Storage, StorageNotSet},
+    storage::{SearchResult, Storage, StorageNotSet},
     vector_store::InMemoryDB,
 };
 
@@ -50,8 +50,8 @@ where
         if let Some(cache) = &mut self.hot_cache
             && self.cfg.should_cache(&entry)
         {
-            if cache.store.count().await.unwrap() > cache.max_memory_limit as usize {
-                cache.evict_from_cache(1).await;
+            if cache.store.count().await.unwrap() > cache.memory_limit() as usize {
+                cache.evict_from_cache(1).await?;
             }
             cache.store.insert(embedding, entry).await?;
         }
@@ -64,7 +64,7 @@ where
         &mut self,
         query: AsRefStr,
         limit: usize,
-    ) -> Result<Vec<MemoryEntry>, crate::Error>
+    ) -> Result<Vec<SearchResult>, crate::Error>
     where
         AsRefStr: AsRef<str>,
     {

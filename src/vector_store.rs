@@ -4,7 +4,11 @@ use std::collections::HashMap;
 
 use rand::seq::IteratorRandom;
 
-use crate::{error::StorageError, memory::MemoryEntry, storage::Storage};
+use crate::{
+    error::StorageError,
+    memory::MemoryEntry,
+    storage::{SearchResult, Storage},
+};
 
 /// An in-memory vector store database. Used to store embeddings.
 /// This data structure primarily stores vectors as one long piece of contiguous memory, using separate hashmaps for entries, indexes as well as a separate vector for getting positions of soft-deleted payloads.
@@ -44,6 +48,23 @@ impl InMemoryDB {
         let array = embedding.as_ref();
 
         array.len() == self.dim
+    }
+
+    pub(crate) fn fetch_embedding<S>(&self, id: S) -> Result<Vec<f32>, crate::Error>
+    where
+        S: AsRef<str>,
+    {
+        let id = id.as_ref();
+
+        let Some((_, pos_offset)) = self.id_to_idx.iter().find(|x| x.0 == &id) else {
+            return Err(StorageError::embedding_not_exists(&id))?;
+        };
+
+        let pos_offset = pos_offset.to_owned();
+
+        let arr = self.data[pos_offset..pos_offset + self.dim].to_vec();
+
+        Ok(arr)
     }
 
     /// Random sampling using the `rand` crate.
@@ -88,7 +109,7 @@ impl Storage for InMemoryDB {
         &self,
         embedding: Vec<f32>,
         limit: usize,
-    ) -> Result<Vec<MemoryEntry>, crate::Error> {
+    ) -> Result<Vec<SearchResult>, crate::Error> {
         let mut out = Vec::new();
         let idx_map = &self.id_to_idx;
         for (id, &idx) in idx_map {
@@ -97,25 +118,27 @@ impl Storage for InMemoryDB {
 
             let score = cosine_similarity(&embedding, &arr);
 
-            out.push((id, score));
+            out.push((id, &embedding, score));
         }
 
         // SAFETY: This should never fail because there's no reason that there would *not* be an ordering (ie, -0 vs 0 or NaN vs NaN)
-        out.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        out.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
         out.truncate(limit);
 
         let out = out
             .into_iter()
-            .map(|(id, _)| {
+            .map(|(id, embedding, _)| {
                 // SAFETY: It is pretty much guaranteed that the payload will exist since the only way to access the payload list is through internal methods
-                self.payloads.get(id).cloned().unwrap()
+                let payload = self.payloads.get(id).cloned().unwrap();
+
+                SearchResult::new(embedding.to_vec(), payload)
             })
             .collect();
 
         Ok(out)
     }
 
-    async fn search_by_id(&self, id: String) -> Result<(Vec<f32>, MemoryEntry), crate::Error> {
+    async fn search_by_id(&self, id: String) -> Result<SearchResult, crate::Error> {
         let Some((_, pos_offset)) = self.id_to_idx.iter().find(|x| x.0 == &id) else {
             return Err(StorageError::embedding_not_exists(&id))?;
         };
@@ -128,23 +151,43 @@ impl Storage for InMemoryDB {
             return Err(StorageError::embedding_not_exists(&id))?;
         };
 
-        Ok((arr, payload))
+        let result = SearchResult::new(arr, payload);
+
+        Ok(result)
     }
 
-    async fn get_oldest(&self, limit: usize) -> Result<Vec<MemoryEntry>, crate::Error> {
+    async fn get_oldest(&self, limit: usize) -> Result<Vec<SearchResult>, crate::Error> {
         let mut entries: Vec<_> = self.payloads.iter().map(|x| x.1.to_owned()).collect();
 
         entries.sort_by_key(|e| e.created_at);
         entries.truncate(limit);
 
+        let entries = entries
+            .into_iter()
+            .map(|payload| {
+                let embedding = self.fetch_embedding(&payload.id)?;
+
+                Ok(SearchResult::new(embedding, payload))
+            })
+            .collect::<Result<Vec<SearchResult>, crate::Error>>()?;
+
         Ok(entries)
     }
 
-    async fn get_recent(&self, limit: usize) -> Result<Vec<MemoryEntry>, crate::Error> {
+    async fn get_recent(&self, limit: usize) -> Result<Vec<SearchResult>, crate::Error> {
         let mut entries: Vec<_> = self.payloads.iter().map(|x| x.1.to_owned()).collect();
 
         entries.sort_by_key(|e| std::cmp::Reverse(e.created_at));
         entries.truncate(limit);
+
+        let entries = entries
+            .into_iter()
+            .map(|payload| {
+                let embedding = self.fetch_embedding(&payload.id)?;
+
+                Ok(SearchResult::new(embedding, payload))
+            })
+            .collect::<Result<Vec<SearchResult>, crate::Error>>()?;
 
         Ok(entries)
     }
