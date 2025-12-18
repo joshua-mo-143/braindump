@@ -13,8 +13,7 @@ pub struct MemoryEntry {
     pub id: String,
     /// The content of the memory (eg, a fact or a summarization of a previous conversation).
     pub content: String,
-    // /// The kind of memory that this memory represents (eg working memory, episodic memory or semantic memory)
-    // pub kind: MemoryKind,
+    pub kind: MemoryKind,
     /// How important the memory is (using a decimal number between 0.0 and 1.0).
     pub importance: f32,
     /// Whenever the memory was created (as a Unix timestamp).
@@ -25,35 +24,33 @@ pub struct MemoryEntry {
     pub access_count: u32,
     /// The context in which this memory has been created
     pub source_context: String,
-    // /// How confident the memory generator is about this piece of information
-    // pub confidence: Confidence,
+    pub confidence: Confidence,
     /// Any additional metadata
     pub metadata: Vec<MetadataEntry>,
 }
 
-// // commented out while waiting for new rig release
-// /// The type of memory.
-// #[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
-// enum MemoryKind {
-//     /// Working memory (ie, stuff that's in the current context window)
-//     Working,
-//     /// Past conversations and events
-//     Episodic,
-//     /// Facts and ground truths
-//     Semantic,
-// }
+/// The type of memory.
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
+pub enum MemoryKind {
+    /// Working memory (ie, stuff that's in the current context window)
+    Working,
+    /// Past conversations and events
+    Episodic,
+    /// Facts and ground truths
+    Semantic,
+}
 
 /// A memory entry draft.
 #[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 pub struct MemoryDraft {
     /// The content of the memory (eg, a fact or a summarization of a previous conversation).
     pub content: String,
-    // pub kind: MemoryKind,
+    pub kind: MemoryKind,
     /// The context in which this memory has been created
     pub source_context: String,
     /// How important the memory is (using a decimal number between 0.0 and 1.0).
     pub importance: f32,
-    // pub confidence: Confidence,
+    pub confidence: Confidence,
     /// Any additional metadata
     pub metadata: Vec<MetadataEntry>,
 }
@@ -64,12 +61,11 @@ pub struct MetadataEntry {
     value: String,
 }
 
-// // commented out as this is awaiting new Rig release
-// /// A confidence score (provided by an LLM). Can either be low, medium or high.
-// /// Represents the LLM's confidence about a fact or conversation history observation.
-// #[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
-// enum Confidence {
-//     Low,
-//     Medium,
-//     High,
-// }
+/// A confidence score (provided by an LLM). Can either be low, medium or high.
+/// Represents the LLM's confidence about a fact or conversation history observation.
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
+pub enum Confidence {
+    Low,
+    Medium,
+    High,
+}

@@ -2,6 +2,7 @@ use crate::{
     memory::MemoryEntry,
     wasm::{WasmCompatSend, WasmCompatSync},
 };
+use std::fmt;
 
 /// Handle storage.
 /// This should be implemented for vector stores as well as any databases that have vector database functionality.
@@ -61,10 +62,19 @@ pub trait Storage: WasmCompatSend + WasmCompatSync {
     fn count(&self) -> impl Future<Output = Result<usize, crate::Error>> + WasmCompatSend;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct SearchResult {
     vec: Vec<f32>,
     data: MemoryEntry,
+}
+
+impl fmt::Debug for SearchResult {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SearchResult")
+            .field("vec", &"<truncated>")
+            .field("data", &self.data)
+            .finish()
+    }
 }
 
 impl SearchResult {

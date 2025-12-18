@@ -198,7 +198,6 @@ impl Storage for InMemoryDB {
         };
 
         self.payloads.remove(&id);
-
         self.free_list.push(arr_pos);
 
         Ok(())
